@@ -22,6 +22,8 @@ class MediaPipeVisualSignalAnalyzer:
 
     MOUTH_OPEN_RATIO_THRESHOLD = 0.075
     MOUTH_WIDE_OPEN_RATIO_THRESHOLD = 0.13
+    MOUTH_SMILE_WIDTH_RATIO_THRESHOLD = 0.405
+    MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD = 0.335
 
     HAND_MOUTH_FACE_RATIO = 0.42
     HAND_FOREHEAD_FACE_RATIO = 0.50
@@ -35,6 +37,8 @@ class MediaPipeVisualSignalAnalyzer:
         "face_detected",
         "mouth_open",
         "mouth_wide_open",
+        "mouth_smile",
+        "mouth_puckered",
         "hand_near_mouth",
         "hand_near_forehead",
         "hand_near_chin",
@@ -115,8 +119,17 @@ class MediaPipeVisualSignalAnalyzer:
             14,
         )
         mouth_open_ratio = self._mouth_open_ratio(face_landmarks)
+        mouth_width_ratio = self._mouth_width_ratio(face_landmarks)
         mouth_open = mouth_open_ratio >= self.MOUTH_OPEN_RATIO_THRESHOLD
         mouth_wide_open = mouth_open_ratio >= self.MOUTH_WIDE_OPEN_RATIO_THRESHOLD
+        mouth_smile = (
+            mouth_width_ratio >= self.MOUTH_SMILE_WIDTH_RATIO_THRESHOLD
+            and not mouth_wide_open
+        )
+        mouth_puckered = (
+            not mouth_open
+            and mouth_width_ratio <= self.MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD
+        )
 
         hand_mouth_threshold = self._scaled_face_threshold(
             face_landmarks,
@@ -207,6 +220,7 @@ class MediaPipeVisualSignalAnalyzer:
         debug = {
             "mouth_distance": mouth_distance,
             "mouth_open_ratio": mouth_open_ratio,
+            "mouth_width_ratio": mouth_width_ratio,
             "hands_detected": float(hands_detected),
             "hand_mouth_distance": self._debug_distance(hand_mouth_distance),
             "hand_forehead_distance": self._debug_distance(hand_forehead_distance),
@@ -220,6 +234,10 @@ class MediaPipeVisualSignalAnalyzer:
             "thumbs_up_count": float(thumbs_up_count),
             "open_palm_count": float(open_palm_count),
             "mouth_wide_open_threshold": self.MOUTH_WIDE_OPEN_RATIO_THRESHOLD,
+            "mouth_smile_width_threshold": self.MOUTH_SMILE_WIDTH_RATIO_THRESHOLD,
+            "mouth_puckered_width_threshold": (
+                self.MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD
+            ),
         }
 
         raw_context = VisualContext(
@@ -228,6 +246,8 @@ class MediaPipeVisualSignalAnalyzer:
             mouth_open=mouth_open,
             mouth_closed=not mouth_open,
             mouth_wide_open=mouth_wide_open,
+            mouth_smile=mouth_smile,
+            mouth_puckered=mouth_puckered,
             hand_near_mouth=hand_near_mouth,
             hand_near_forehead=hand_near_forehead,
             hand_near_chin=hand_near_chin,
@@ -306,6 +326,29 @@ class MediaPipeVisualSignalAnalyzer:
             return 0.0
 
         return mouth_distance / face_height
+
+    def _mouth_width_ratio(self, face_landmarks: Any) -> float:
+        """
+        FaceMesh indexes:
+        61/291 = outer mouth corners
+        234/454 = face sides
+        """
+
+        mouth_width = self._distance_between_face_points(
+            face_landmarks,
+            61,
+            291,
+        )
+        face_width = self._distance_between_face_points(
+            face_landmarks,
+            234,
+            454,
+        )
+
+        if face_width <= 0:
+            return 0.0
+
+        return mouth_width / face_width
 
     def _scaled_face_threshold(
         self,
@@ -443,6 +486,8 @@ class MediaPipeVisualSignalAnalyzer:
                 and not smoothed_values["mouth_open"]
             ),
             mouth_wide_open=smoothed_values["mouth_wide_open"],
+            mouth_smile=smoothed_values["mouth_smile"],
+            mouth_puckered=smoothed_values["mouth_puckered"],
             hand_near_mouth=smoothed_values["hand_near_mouth"],
             hand_near_forehead=smoothed_values["hand_near_forehead"],
             hand_near_chin=smoothed_values["hand_near_chin"],
@@ -491,10 +536,9 @@ class MediaPipeVisualSignalAnalyzer:
 
         return distance
 
-    @staticmethod
-    def _is_thumbs_up(hand_landmarks: Any) -> bool:
+    def _is_thumbs_up(self, hand_landmarks: Any) -> bool:
         """
-        Conservative thumbs-up detector.
+        Score-based thumbs-up detector.
 
         In image coordinates:
         - y is smaller when the point is higher on the screen.
@@ -525,15 +569,15 @@ class MediaPipeVisualSignalAnalyzer:
         thumb_points_up = (
             thumb_tip.y < thumb_ip.y
             and thumb_ip.y < thumb_mcp.y
-            and thumb_tip.y < wrist.y - 0.16
+            and thumb_tip.y < wrist.y - 0.10
         )
         thumb_is_vertical = (
-            thumb_vertical_distance > 0.10
-            and thumb_vertical_distance > thumb_horizontal_distance * 1.25
+            thumb_vertical_distance > 0.065
+            and thumb_vertical_distance > thumb_horizontal_distance * 0.70
         )
         thumb_is_above_knuckles = (
-            thumb_tip.y < index_mcp.y - 0.04
-            and thumb_tip.y < middle_mcp.y - 0.04
+            thumb_tip.y < index_mcp.y - 0.025
+            and thumb_tip.y < middle_mcp.y - 0.025
         )
         palm_is_upright = (
             index_mcp.y < wrist.y
@@ -542,20 +586,32 @@ class MediaPipeVisualSignalAnalyzer:
             and pinky_mcp.y < wrist.y
         )
 
-        fingers_are_folded = (
-            index_tip.y > index_pip.y + 0.015
-            and middle_tip.y > middle_pip.y + 0.015
-            and ring_tip.y > ring_pip.y + 0.015
-            and pinky_tip.y > pinky_pip.y + 0.015
+        folded_fingers = (
+            self._is_finger_folded(index_tip, index_pip, index_mcp),
+            self._is_finger_folded(middle_tip, middle_pip, middle_mcp),
+            self._is_finger_folded(ring_tip, ring_pip, ring_mcp),
+            self._is_finger_folded(pinky_tip, pinky_pip, pinky_mcp),
         )
+        folded_count = sum(folded_fingers)
 
         return (
             thumb_points_up
             and thumb_is_vertical
             and thumb_is_above_knuckles
             and palm_is_upright
-            and fingers_are_folded
+            and folded_count >= 3
         )
+
+    @staticmethod
+    def _is_finger_folded(
+        finger_tip: Any,
+        finger_pip: Any,
+        finger_mcp: Any,
+    ) -> bool:
+        tip_not_raised = finger_tip.y >= finger_pip.y - 0.015
+        tip_near_palm = abs(finger_tip.y - finger_mcp.y) <= 0.10
+
+        return tip_not_raised or tip_near_palm
 
     @staticmethod
     def _is_open_palm(hand_landmarks: Any) -> bool:

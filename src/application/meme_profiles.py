@@ -116,11 +116,43 @@ def build_default_meme_profiles() -> tuple[MemeProfile, ...]:
             description="Admiring/open-hand reaction.",
         ),
         MemeProfile(
+            key="smiling",
+            priority=760.0,
+            min_total_score=785.0,
+            required_signals=("mouth_smile", "mouth_closed"),
+            blocked_signals=("mouth_puckered",),
+            min_scores={
+                "happy": 20.0,
+            },
+            emotion_weights={
+                "happy": 1.4,
+            },
+            search_terms=("smiling reaction gif", "happy smile reaction meme"),
+            description="Clear closed-mouth smile.",
+        ),
+        MemeProfile(
+            key="kiss",
+            priority=780.0,
+            min_total_score=780.0,
+            required_signals=("mouth_puckered",),
+            blocked_signals=("mouth_smile",),
+            emotion_weights={
+                "happy": 0.4,
+                "neutral": 0.2,
+            },
+            search_terms=("blowing kiss reaction gif", "mwah reaction gif"),
+            description="Puckered lips / kiss-face expression.",
+        ),
+        MemeProfile(
             key="happy",
             priority=0.0,
             min_total_score=40.0,
+            blocked_signals=("mouth_puckered",),
             emotion_weights={
                 "happy": 2.0,
+            },
+            signal_weights={
+                "mouth_smile": 30.0,
             },
             search_terms=("happy reaction meme", "laughing reaction meme"),
             description="Happy emotion.",

@@ -170,6 +170,8 @@ Supported signal names include:
 mouth_open
 mouth_closed
 mouth_wide_open
+mouth_smile
+mouth_puckered
 hand_near_mouth
 hand_near_forehead
 hand_near_chin
@@ -186,12 +188,18 @@ one_open_palm
 two_open_palms
 ```
 
-Aliases supported for `mouth_closed`:
+Useful aliases:
 
 ```text
 close_mouth
 closed_mouth
 mouth_close
+smile
+smiling
+kiss_lips
+puckered_lips
+duck_face
+kiss_mouth
 wide_open_mouth
 big_mouth_open
 hands_visible

@@ -11,6 +11,8 @@ class VisualContext:
     mouth_open: bool = False
     mouth_closed: bool = False
     mouth_wide_open: bool = False
+    mouth_smile: bool = False
+    mouth_puckered: bool = False
     hand_near_mouth: bool = False
     hand_near_forehead: bool = False
     hand_near_chin: bool = False
