@@ -94,6 +94,24 @@ on each app loop, so remote and local GIFs can animate. If a remote candidate
 still cannot be decoded, the API repository skips it and tries another candidate
 before falling back to local assets.
 
+To avoid spending API calls too quickly, the remote repository uses three pacing
+settings:
+
+```json
+"minimum_remote_display_seconds": 5,
+"remote_request_cooldown_seconds": 8,
+"media_cache_seconds": 900
+```
+
+`minimum_remote_display_seconds` keeps the current remote meme visible long
+enough to actually see it.
+
+`remote_request_cooldown_seconds` prevents new provider searches while the last
+remote search is still fresh.
+
+`media_cache_seconds` reuses already downloaded and decoded remote images/GIFs
+for the same meme key before calling providers again.
+
 Set `"prefer_remote": true` in `api_providers.json` when you want APIs to win
 over local folders. The safer default is `false`: local first, API fallback.
 
@@ -143,3 +161,49 @@ The Hugging Face model should return labels that can be mapped to:
 `min_scores` requires each listed emotion to reach its threshold.
 
 `any_min_scores` requires at least one listed emotion to reach its threshold.
+
+## Visual signals
+
+Supported signal names include:
+
+```text
+mouth_open
+mouth_closed
+mouth_wide_open
+hand_near_mouth
+hand_near_forehead
+hand_near_chin
+hand_near_temple
+hand_near_face
+hands_near_cheeks
+no_hands
+any_hands
+one_hand
+two_hands
+thumbs_up
+open_palm
+one_open_palm
+two_open_palms
+```
+
+Aliases supported for `mouth_closed`:
+
+```text
+close_mouth
+closed_mouth
+mouth_close
+wide_open_mouth
+big_mouth_open
+hands_visible
+hand_visible
+any_hand
+hand_near_head
+hand_face
+no_hand
+single_hand
+both_hands
+single_open_palm
+```
+
+If a profile uses a signal that is not supported, it will never match because
+unknown signals evaluate as `False`.

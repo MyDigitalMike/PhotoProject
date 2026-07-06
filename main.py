@@ -81,6 +81,9 @@ def main() -> None:
         giphy_api_key_env=api_config.giphy.api_key_env,
         giphy_api_key=giphy_api_key,
         imgflip_enabled=api_config.imgflip.enabled,
+        minimum_remote_display_seconds=api_config.minimum_remote_display_seconds,
+        remote_request_cooldown_seconds=api_config.remote_request_cooldown_seconds,
+        media_cache_seconds=api_config.media_cache_seconds,
     )
 
     local_meme_repository = FolderMemeRepository(
@@ -114,6 +117,9 @@ def main() -> None:
         max_results_per_query=api_config.max_results_per_query,
         log_api_calls=api_config.log_api_calls,
         candidate_cache_seconds=api_config.candidate_cache_seconds,
+        media_cache_seconds=api_config.media_cache_seconds,
+        minimum_display_seconds=api_config.minimum_remote_display_seconds,
+        request_cooldown_seconds=api_config.remote_request_cooldown_seconds,
     )
     meme_repository = HybridMemeRepository(
         local_repository=local_meme_repository,
@@ -148,6 +154,9 @@ def _print_api_config(
     giphy_api_key_env: str,
     giphy_api_key: str | None,
     imgflip_enabled: bool,
+    minimum_remote_display_seconds: float,
+    remote_request_cooldown_seconds: float,
+    media_cache_seconds: float,
 ) -> None:
     print(
         "Meme API config: "
@@ -167,6 +176,12 @@ def _print_api_config(
             f"runtime because {giphy_api_key_env} is missing in this process."
         )
     print(f"Meme API provider: imgflip enabled={imgflip_enabled}")
+    print(
+        "Meme API pacing: "
+        f"minimum_display={minimum_remote_display_seconds:.1f}s, "
+        f"request_cooldown={remote_request_cooldown_seconds:.1f}s, "
+        f"media_cache={media_cache_seconds:.1f}s"
+    )
 
 
 def _mask_secret(secret: str | None) -> str:

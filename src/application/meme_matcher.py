@@ -17,6 +17,23 @@ class MemeMatcher:
     wtf_bro, confused, side_eye, etc. as soon as there are images for them.
     """
 
+    SIGNAL_ALIASES = {
+        "close_mouth": "mouth_closed",
+        "closed_mouth": "mouth_closed",
+        "mouth_close": "mouth_closed",
+        "wide_open_mouth": "mouth_wide_open",
+        "big_mouth_open": "mouth_wide_open",
+        "hands_visible": "any_hands",
+        "hand_visible": "any_hands",
+        "any_hand": "any_hands",
+        "hand_near_head": "hand_near_temple",
+        "hand_face": "hand_near_face",
+        "no_hand": "no_hands",
+        "single_hand": "one_hand",
+        "both_hands": "two_hands",
+        "single_open_palm": "one_open_palm",
+    }
+
     def __init__(
         self,
         profiles: Iterable[MemeProfile] | None = None,
@@ -136,4 +153,9 @@ class MemeMatcher:
         visual_context: VisualContext,
         signal_name: str,
     ) -> bool:
-        return bool(getattr(visual_context, signal_name, False))
+        resolved_signal_name = MemeMatcher.SIGNAL_ALIASES.get(
+            signal_name,
+            signal_name,
+        )
+
+        return bool(getattr(visual_context, resolved_signal_name, False))

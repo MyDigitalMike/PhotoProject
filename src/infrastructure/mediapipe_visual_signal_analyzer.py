@@ -21,6 +21,7 @@ class MediaPipeVisualSignalAnalyzer:
     """
 
     MOUTH_OPEN_RATIO_THRESHOLD = 0.075
+    MOUTH_WIDE_OPEN_RATIO_THRESHOLD = 0.13
 
     HAND_MOUTH_FACE_RATIO = 0.42
     HAND_FOREHEAD_FACE_RATIO = 0.50
@@ -33,13 +34,20 @@ class MediaPipeVisualSignalAnalyzer:
     SMOOTHED_SIGNALS = (
         "face_detected",
         "mouth_open",
+        "mouth_wide_open",
         "hand_near_mouth",
         "hand_near_forehead",
         "hand_near_chin",
         "hand_near_temple",
+        "hand_near_face",
         "hands_near_cheeks",
+        "no_hands",
+        "any_hands",
+        "one_hand",
+        "two_hands",
         "thumbs_up",
         "open_palm",
+        "one_open_palm",
         "two_open_palms",
     )
 
@@ -81,11 +89,19 @@ class MediaPipeVisualSignalAnalyzer:
 
         face_detected = face_landmarks is not None
         hands_detected = len(hand_landmarks_list)
+        no_hands = hands_detected == 0
+        any_hands = hands_detected > 0
+        one_hand = hands_detected == 1
+        two_hands = hands_detected >= 2
 
         if face_landmarks is None:
             raw_context = VisualContext(
                 face_detected=False,
                 hands_detected=hands_detected,
+                no_hands=no_hands,
+                any_hands=any_hands,
+                one_hand=one_hand,
+                two_hands=two_hands,
                 debug={
                     "hands_detected": float(hands_detected),
                 },
@@ -100,6 +116,7 @@ class MediaPipeVisualSignalAnalyzer:
         )
         mouth_open_ratio = self._mouth_open_ratio(face_landmarks)
         mouth_open = mouth_open_ratio >= self.MOUTH_OPEN_RATIO_THRESHOLD
+        mouth_wide_open = mouth_open_ratio >= self.MOUTH_WIDE_OPEN_RATIO_THRESHOLD
 
         hand_mouth_threshold = self._scaled_face_threshold(
             face_landmarks,
@@ -165,6 +182,13 @@ class MediaPipeVisualSignalAnalyzer:
             face_landmarks,
             threshold=hand_cheek_threshold,
         )
+        hand_near_face = (
+            hand_near_mouth
+            or hand_near_forehead
+            or hand_near_chin
+            or hand_near_temple
+            or hands_near_cheeks
+        )
 
         thumbs_up_count = sum(
             self._is_thumbs_up(hand_landmarks)
@@ -177,6 +201,7 @@ class MediaPipeVisualSignalAnalyzer:
             for hand_landmarks in hand_landmarks_list
         )
         open_palm = open_palm_count >= 1
+        one_open_palm = open_palm_count == 1
         two_open_palms = open_palm_count >= 2
 
         debug = {
@@ -194,19 +219,28 @@ class MediaPipeVisualSignalAnalyzer:
             "hand_cheek_threshold": hand_cheek_threshold,
             "thumbs_up_count": float(thumbs_up_count),
             "open_palm_count": float(open_palm_count),
+            "mouth_wide_open_threshold": self.MOUTH_WIDE_OPEN_RATIO_THRESHOLD,
         }
 
         raw_context = VisualContext(
             face_detected=face_detected,
             hands_detected=hands_detected,
             mouth_open=mouth_open,
+            mouth_closed=not mouth_open,
+            mouth_wide_open=mouth_wide_open,
             hand_near_mouth=hand_near_mouth,
             hand_near_forehead=hand_near_forehead,
             hand_near_chin=hand_near_chin,
             hand_near_temple=hand_near_temple,
+            hand_near_face=hand_near_face,
             hands_near_cheeks=hands_near_cheeks,
+            no_hands=no_hands,
+            any_hands=any_hands,
+            one_hand=one_hand,
+            two_hands=two_hands,
             thumbs_up=thumbs_up,
             open_palm=open_palm,
+            one_open_palm=one_open_palm,
             two_open_palms=two_open_palms,
             debug=debug,
         )
@@ -404,13 +438,24 @@ class MediaPipeVisualSignalAnalyzer:
             face_detected=smoothed_values["face_detected"],
             hands_detected=raw_context.hands_detected,
             mouth_open=smoothed_values["mouth_open"],
+            mouth_closed=(
+                smoothed_values["face_detected"]
+                and not smoothed_values["mouth_open"]
+            ),
+            mouth_wide_open=smoothed_values["mouth_wide_open"],
             hand_near_mouth=smoothed_values["hand_near_mouth"],
             hand_near_forehead=smoothed_values["hand_near_forehead"],
             hand_near_chin=smoothed_values["hand_near_chin"],
             hand_near_temple=smoothed_values["hand_near_temple"],
+            hand_near_face=smoothed_values["hand_near_face"],
             hands_near_cheeks=smoothed_values["hands_near_cheeks"],
+            no_hands=smoothed_values["no_hands"],
+            any_hands=smoothed_values["any_hands"],
+            one_hand=smoothed_values["one_hand"],
+            two_hands=smoothed_values["two_hands"],
             thumbs_up=smoothed_values["thumbs_up"],
             open_palm=smoothed_values["open_palm"],
+            one_open_palm=smoothed_values["one_open_palm"],
             two_open_palms=smoothed_values["two_open_palms"],
             debug=debug,
         )

@@ -2,215 +2,321 @@
   "profiles": [
     {
       "key": "thumbs_up",
-      "priority": 1000.0,
-      "min_total_score": 1000.0,
+      "priority": 1200.0,
+      "min_total_score": 1200.0,
       "required_signals": ["thumbs_up"],
-      "description": "Thumbs-up pose."
+      "search_terms": ["thumbs up reaction meme", "approval reaction gif", "nice reaction meme"],
+      "description": "Strong thumbs-up gesture."
     },
     {
       "key": "facepalm",
-      "priority": 950.0,
-      "min_total_score": 950.0,
+      "priority": 1160.0,
+      "min_total_score": 1160.0,
       "required_signals": ["hand_near_forehead"],
+      "search_terms": ["facepalm reaction meme", "face palm gif", "disappointed facepalm meme"],
       "description": "Hand near forehead."
     },
     {
       "key": "thinking",
-      "priority": 900.0,
-      "min_total_score": 900.0,
+      "priority": 1120.0,
+      "min_total_score": 1120.0,
       "required_signals": ["hand_near_chin"],
       "blocked_signals": ["hand_near_mouth"],
+      "search_terms": ["thinking reaction meme", "thinking face meme", "hmm reaction gif"],
       "description": "Hand on chin."
     },
     {
-      "key": "shocked",
-      "priority": 520.0,
-      "min_total_score": 580.0,
-      "required_signals": ["hands_near_cheeks"],
-      "emotion_weights": {
-        "surprise": 3.0,
-        "fear": 3.0,
-        "sad": 1.0
-      },
-      "signal_weights": {
-        "mouth_open": 100.0
-      },
-      "description": "Both hands near cheeks with shock/fear/open mouth."
+      "key": "chef_kiss",
+      "priority": 1080.0,
+      "min_total_score": 1080.0,
+      "required_signals": ["hand_near_mouth", "mouth_closed"],
+      "emotion_weights": {"happy": 1.0},
+      "search_terms": ["chef kiss reaction gif", "chef kiss meme", "perfect reaction meme"],
+      "description": "Hand near closed mouth with positive emotion."
     },
     {
       "key": "hand_on_mouth",
-      "priority": 850.0,
-      "min_total_score": 850.0,
+      "priority": 1040.0,
+      "min_total_score": 1040.0,
       "required_signals": ["hand_near_mouth"],
       "blocked_signals": ["mouth_open"],
+      "search_terms": ["hand on mouth reaction meme", "covered mouth reaction gif", "oops reaction meme"],
       "description": "Covered mouth."
     },
     {
-      "key": "hand_on_mouth",
-      "priority": 620.0,
-      "min_total_score": 665.0,
-      "required_signals": ["hand_near_mouth"],
-      "emotion_weights": {
-        "surprise": 3.0,
-        "fear": 3.0,
-        "sad": 1.0
-      },
-      "description": "Hand near mouth with surprise/fear/sadness."
+      "key": "shocked",
+      "priority": 1000.0,
+      "min_total_score": 1040.0,
+      "required_signals": ["hands_near_cheeks"],
+      "emotion_weights": {"surprise": 2.5, "fear": 2.0, "sad": 0.6},
+      "signal_weights": {"mouth_open": 90.0, "mouth_wide_open": 130.0},
+      "search_terms": ["shocked reaction meme", "home alone shocked face meme", "surprised shocked gif"],
+      "description": "Both hands near cheeks with shock/fear/open mouth."
     },
     {
       "key": "wtf_bro",
-      "priority": 610.0,
-      "min_total_score": 660.0,
+      "priority": 1020.0,
+      "min_total_score": 1030.0,
       "required_signals": ["two_open_palms"],
-      "emotion_weights": {
-        "surprise": 2.5,
-        "angry": 1.5,
-        "disgust": 4.0,
-        "fear": 1.0
-      },
-      "signal_weights": {
-        "mouth_open": 70.0
-      },
-      "search_terms": [
-        "wtf reaction meme",
-        "what bro reaction meme",
-        "confused what meme"
-      ],
-      "description": "Questioning two-palms pose. Add images to assets/memes/wtf_bro."
+      "emotion_weights": {"surprise": 2.0, "angry": 1.4, "disgust": 3.0, "fear": 0.8, "neutral": 0.5},
+      "signal_weights": {"mouth_open": 60.0},
+      "search_terms": ["wtf reaction meme", "what bro reaction meme", "confused what meme", "what are you doing reaction gif"],
+      "description": "Questioning two-palms pose."
     },
     {
       "key": "confused",
-      "priority": 540.0,
-      "min_total_score": 590.0,
+      "priority": 940.0,
+      "min_total_score": 980.0,
       "required_signals": ["hand_near_temple"],
-      "emotion_weights": {
-        "surprise": 2.0,
-        "neutral": 0.5,
-        "sad": 0.8
-      },
-      "search_terms": [
-        "confused reaction meme",
-        "confused meme",
-        "what is happening reaction meme"
-      ],
-      "description": "Hand near temple or head-scratch style pose. Add images to assets/memes/confused."
+      "emotion_weights": {"surprise": 1.6, "neutral": 0.6, "sad": 0.6},
+      "search_terms": ["confused reaction meme", "confused gif", "what is happening reaction meme", "math lady confused meme"],
+      "description": "Hand near temple or head-scratch style pose."
     },
     {
       "key": "absolute_cinema",
-      "priority": 210.0,
-      "min_total_score": 290.0,
+      "priority": 900.0,
+      "min_total_score": 940.0,
       "any_signals": ["open_palm", "two_open_palms"],
-      "emotion_weights": {
-        "happy": 1.2,
-        "neutral": 0.8,
-        "surprise": 0.4
-      },
-      "signal_weights": {
-        "open_palm": 85.0,
-        "two_open_palms": 120.0
-      },
-      "search_terms": [
-        "absolute cinema meme",
-        "cinema reaction meme",
-        "masterpiece reaction meme"
-      ],
-      "description": "Admiring/open-hand reaction. Add images to assets/memes/absolute_cinema."
+      "emotion_weights": {"happy": 1.0, "neutral": 0.5, "surprise": 0.4},
+      "signal_weights": {"one_open_palm": 70.0, "two_open_palms": 110.0},
+      "search_terms": ["absolute cinema meme", "cinema reaction meme", "masterpiece reaction meme", "peak fiction meme"],
+      "description": "Admiring/open-hand reaction."
     },
     {
-      "key": "happy",
-      "min_total_score": 40.0,
-      "emotion_weights": {
-        "happy": 2.0
-      },
-      "search_terms": [
-        "happy reaction meme",
-        "laughing reaction meme"
-      ],
-      "description": "Happy emotion."
+      "key": "stop",
+      "priority": 860.0,
+      "min_total_score": 880.0,
+      "required_signals": ["one_open_palm"],
+      "emotion_weights": {"angry": 1.0, "disgust": 1.0, "neutral": 0.4},
+      "search_terms": ["stop reaction meme", "hold up meme", "wait a minute reaction gif"],
+      "description": "One open palm/stop gesture."
     },
     {
-      "key": "fear",
-      "min_total_score": 50.0,
-      "emotion_weights": {
-        "fear": 2.0
-      },
-      "signal_weights": {
-        "mouth_open": 15.0
-      },
-      "description": "Fear emotion."
+      "key": "nope",
+      "priority": 820.0,
+      "min_total_score": 860.0,
+      "required_signals": ["one_open_palm"],
+      "emotion_weights": {"disgust": 2.0, "angry": 1.2, "neutral": 0.6},
+      "search_terms": ["nope reaction meme", "no thanks reaction gif", "absolutely not meme"],
+      "description": "Rejecting one-palm reaction."
     },
     {
-      "key": "fear",
-      "min_total_score": 65.0,
-      "min_scores": {
-        "surprise": 25.0
-      },
-      "signal_weights": {
-        "mouth_open": 65.0
-      },
-      "description": "Surprise with open mouth, mapped to fear."
+      "key": "mind_blown",
+      "priority": 760.0,
+      "min_total_score": 835.0,
+      "required_signals": ["mouth_wide_open"],
+      "emotion_weights": {"surprise": 2.2, "fear": 1.0},
+      "search_terms": ["mind blown reaction gif", "mind blown meme", "surprised mind blown reaction"],
+      "description": "Wide open mouth with surprise."
+    },
+    {
+      "key": "screaming",
+      "priority": 740.0,
+      "min_total_score": 820.0,
+      "required_signals": ["mouth_wide_open"],
+      "emotion_weights": {"fear": 2.0, "angry": 1.4, "surprise": 1.2},
+      "search_terms": ["screaming reaction gif", "screaming meme", "panic screaming reaction"],
+      "description": "Wide open mouth with fear/anger."
+    },
+    {
+      "key": "kiss",
+      "priority": 700.0,
+      "min_total_score": 760.0,
+      "required_signals": ["mouth_closed"],
+      "blocked_signals": ["hand_near_face"],
+      "emotion_weights": {"happy": 2.0},
+      "search_terms": ["kiss meme", "love reaction gif", "blowing kiss meme", "mwah reaction gif"],
+      "description": "Happy face with closed mouth, mapped to kiss/love memes."
+    },
+    {
+      "key": "smirk",
+      "priority": 660.0,
+      "min_total_score": 715.0,
+      "required_signals": ["mouth_closed", "no_hands"],
+      "emotion_weights": {"happy": 1.5, "neutral": 0.5},
+      "search_terms": ["smirk reaction meme", "smug reaction gif", "smiling sly meme"],
+      "description": "Closed-mouth positive/smug reaction."
+    },
+    {
+      "key": "laughing",
+      "priority": 620.0,
+      "min_total_score": 700.0,
+      "required_signals": ["mouth_open"],
+      "emotion_weights": {"happy": 2.2},
+      "signal_weights": {"mouth_wide_open": 90.0},
+      "search_terms": ["laughing reaction gif", "laughing meme", "lol reaction gif", "dying laughing meme"],
+      "description": "Happy with open mouth."
+    },
+    {
+      "key": "rage",
+      "priority": 580.0,
+      "min_total_score": 680.0,
+      "emotion_weights": {"angry": 2.5},
+      "signal_weights": {"mouth_open": 60.0, "mouth_wide_open": 100.0},
+      "search_terms": ["rage reaction meme", "angry screaming meme", "furious reaction gif"],
+      "description": "Strong anger."
+    },
+    {
+      "key": "panic",
+      "priority": 540.0,
+      "min_total_score": 650.0,
+      "emotion_weights": {"fear": 2.5, "surprise": 1.0},
+      "signal_weights": {"mouth_open": 50.0, "mouth_wide_open": 90.0},
+      "search_terms": ["panic reaction gif", "panicking meme", "scared panic reaction"],
+      "description": "Fear/panic reaction."
+    },
+    {
+      "key": "gross",
+      "priority": 500.0,
+      "min_total_score": 540.0,
+      "emotion_weights": {"disgust": 3.0, "angry": 0.7},
+      "search_terms": ["gross reaction meme", "disgusted reaction gif", "ew reaction meme"],
+      "description": "Disgust reaction."
+    },
+    {
+      "key": "crying",
+      "priority": 460.0,
+      "min_total_score": 550.0,
+      "emotion_weights": {"sad": 2.4, "fear": 0.4},
+      "search_terms": ["crying reaction gif", "crying meme", "sad crying reaction meme"],
+      "description": "Strong sad reaction."
+    },
+    {
+      "key": "disappointed",
+      "priority": 420.0,
+      "min_total_score": 500.0,
+      "emotion_weights": {"sad": 1.9, "neutral": 0.5},
+      "signal_weights": {"mouth_closed": 25.0},
+      "search_terms": ["disappointed reaction meme", "disappointed gif", "sad disappointed meme"],
+      "description": "Sad/disappointed reaction."
+    },
+    {
+      "key": "side_eye",
+      "priority": 380.0,
+      "min_total_score": 455.0,
+      "required_signals": ["mouth_closed", "no_hands"],
+      "emotion_weights": {"neutral": 1.1, "angry": 0.7, "disgust": 1.2},
+      "search_terms": ["side eye reaction meme", "side eye gif", "judging reaction meme", "suspicious side eye meme"],
+      "description": "Closed-mouth skeptical/judging reaction."
+    },
+    {
+      "key": "sus",
+      "priority": 360.0,
+      "min_total_score": 445.0,
+      "required_signals": ["mouth_closed"],
+      "emotion_weights": {"neutral": 1.0, "disgust": 1.4, "angry": 0.6},
+      "search_terms": ["sus reaction meme", "suspicious reaction gif", "doubt reaction meme"],
+      "description": "Suspicious neutral/disgust reaction."
+    },
+    {
+      "key": "awkward",
+      "priority": 340.0,
+      "min_total_score": 430.0,
+      "required_signals": ["no_hands"],
+      "emotion_weights": {"neutral": 1.1, "sad": 0.5, "fear": 0.5},
+      "search_terms": ["awkward reaction meme", "awkward gif", "awkward silence meme"],
+      "description": "Awkward neutral reaction."
+    },
+    {
+      "key": "annoyed",
+      "priority": 320.0,
+      "min_total_score": 410.0,
+      "emotion_weights": {"angry": 1.7, "neutral": 0.5, "disgust": 0.8},
+      "signal_weights": {"mouth_closed": 20.0},
+      "search_terms": ["annoyed reaction meme", "annoyed gif", "irritated reaction meme"],
+      "description": "Moderate anger/annoyance."
+    },
+    {
+      "key": "scared",
+      "priority": 300.0,
+      "min_total_score": 390.0,
+      "emotion_weights": {"fear": 2.0, "surprise": 0.6},
+      "signal_weights": {"mouth_open": 30.0},
+      "search_terms": ["scared reaction meme", "scared gif", "fear reaction meme"],
+      "description": "Fear reaction."
     },
     {
       "key": "shocked",
-      "min_total_score": 70.0,
-      "emotion_weights": {
-        "surprise": 2.0
-      },
+      "priority": 280.0,
+      "min_total_score": 370.0,
+      "emotion_weights": {"surprise": 2.1, "fear": 0.6},
+      "signal_weights": {"mouth_open": 35.0},
+      "search_terms": ["shocked reaction meme", "surprised shocked gif", "oh my god reaction meme"],
       "description": "Strong surprise."
     },
     {
       "key": "surprise",
-      "min_total_score": 45.0,
-      "emotion_weights": {
-        "surprise": 1.5
-      },
-      "signal_weights": {
-        "mouth_open": 20.0
-      },
-      "search_terms": [
-        "surprised reaction meme",
-        "surprise meme",
-        "mind blown reaction meme"
-      ],
+      "priority": 240.0,
+      "min_total_score": 320.0,
+      "emotion_weights": {"surprise": 1.7},
+      "signal_weights": {"mouth_open": 25.0},
+      "search_terms": ["surprised reaction meme", "surprise gif", "mind blown reaction meme"],
       "description": "Moderate surprise."
     },
     {
-      "key": "sad",
-      "min_total_score": 35.0,
-      "emotion_weights": {
-        "sad": 2.0
-      },
-      "description": "Sad emotion."
+      "key": "happy",
+      "priority": 200.0,
+      "min_total_score": 270.0,
+      "emotion_weights": {"happy": 2.0},
+      "search_terms": ["happy reaction meme", "happy gif", "smiling reaction meme"],
+      "description": "General happy reaction."
     },
     {
-      "key": "disgust",
-      "min_total_score": 24.0,
-      "emotion_weights": {
-        "disgust": 3.0
-      },
-      "description": "Disgust emotion."
+      "key": "sad",
+      "priority": 180.0,
+      "min_total_score": 250.0,
+      "emotion_weights": {"sad": 2.0},
+      "search_terms": ["sad reaction meme", "sad gif", "sad face reaction meme"],
+      "description": "General sad reaction."
     },
     {
       "key": "angry",
-      "min_total_score": 80.0,
-      "emotion_weights": {
-        "angry": 2.0
-      },
-      "description": "Angry emotion."
+      "priority": 160.0,
+      "min_total_score": 250.0,
+      "emotion_weights": {"angry": 2.0},
+      "search_terms": ["angry reaction meme", "mad reaction gif", "angry meme"],
+      "description": "General angry reaction."
     },
     {
-      "key": "open_palm",
+      "key": "fear",
+      "priority": 140.0,
+      "min_total_score": 230.0,
+      "emotion_weights": {"fear": 2.0},
+      "search_terms": ["fear reaction meme", "scared reaction gif", "nervous reaction meme"],
+      "description": "General fear reaction."
+    },
+    {
+      "key": "disgust",
+      "priority": 120.0,
+      "min_total_score": 170.0,
+      "emotion_weights": {"disgust": 3.0},
+      "search_terms": ["disgust reaction meme", "ew reaction gif", "grossed out meme"],
+      "description": "General disgust reaction."
+    },
+    {
+      "key": "bored",
       "priority": 100.0,
-      "min_total_score": 100.0,
-      "required_signals": ["open_palm"],
-      "description": "Open palm/stop gesture."
+      "min_total_score": 185.0,
+      "required_signals": ["mouth_closed", "no_hands"],
+      "emotion_weights": {"neutral": 1.1, "sad": 0.3},
+      "search_terms": ["bored reaction meme", "bored gif", "unimpressed bored meme"],
+      "description": "Bored neutral reaction."
+    },
+    {
+      "key": "deadpan",
+      "priority": 80.0,
+      "min_total_score": 165.0,
+      "required_signals": ["mouth_closed", "no_hands"],
+      "emotion_weights": {"neutral": 1.2},
+      "search_terms": ["deadpan reaction meme", "blank stare gif", "deadpan face meme"],
+      "description": "Blank/neutral stare."
     },
     {
       "key": "neutral",
-      "min_total_score": 30.0,
-      "emotion_weights": {
-        "neutral": 1.0
-      },
+      "priority": 20.0,
+      "min_total_score": 70.0,
+      "emotion_weights": {"neutral": 1.0},
+      "search_terms": ["neutral reaction meme", "neutral gif", "blank stare meme"],
       "description": "Neutral fallback."
     }
   ]

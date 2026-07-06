@@ -4,6 +4,9 @@
   "log_api_calls": true,
   "max_results_per_query": 6,
   "candidate_cache_seconds": 60,
+  "media_cache_seconds": 900,
+  "minimum_remote_display_seconds": 5,
+  "remote_request_cooldown_seconds": 8,
   "giphy": {
     "enabled": true,
     "api_key_env": "GIPHY_API_KEY",

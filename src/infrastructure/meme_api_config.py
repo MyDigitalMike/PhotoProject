@@ -26,6 +26,9 @@ class MemeApiConfig:
     log_api_calls: bool = True
     max_results_per_query: int = 6
     candidate_cache_seconds: float = 60.0
+    media_cache_seconds: float = 900.0
+    minimum_remote_display_seconds: float = 5.0
+    remote_request_cooldown_seconds: float = 8.0
     giphy: GiphyProviderConfig = field(default_factory=GiphyProviderConfig)
     imgflip: ImgflipProviderConfig = field(default_factory=ImgflipProviderConfig)
 
@@ -53,6 +56,13 @@ class MemeApiConfigLoader:
             max_results_per_query=int(raw_config.get("max_results_per_query", 6)),
             candidate_cache_seconds=float(
                 raw_config.get("candidate_cache_seconds", 60.0)
+            ),
+            media_cache_seconds=float(raw_config.get("media_cache_seconds", 900.0)),
+            minimum_remote_display_seconds=float(
+                raw_config.get("minimum_remote_display_seconds", 5.0)
+            ),
+            remote_request_cooldown_seconds=float(
+                raw_config.get("remote_request_cooldown_seconds", 8.0)
             ),
             giphy=self._giphy_config(raw_config.get("giphy", {})),
             imgflip=self._imgflip_config(raw_config.get("imgflip", {})),
