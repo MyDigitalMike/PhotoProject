@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "prefer_remote": true,
+  "log_api_calls": true,
+  "max_results_per_query": 6,
+  "candidate_cache_seconds": 60,
+  "giphy": {
+    "enabled": true,
+    "api_key_env": "GIPHY_API_KEY",
+    "rating": "r",
+    "language": "en"
+  },
+  "imgflip": {
+    "enabled": true
+  }
+}

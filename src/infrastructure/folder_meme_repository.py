@@ -1,21 +1,32 @@
 from __future__ import annotations
 
 import random
+import time
 from pathlib import Path
 
-import cv2
 import numpy as np
+
+from src.domain.meme_media import MemeMedia
+from src.infrastructure.local_meme_media_loader import LocalMemeMediaLoader
 
 
 class FolderMemeRepository:
-    SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+    SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
-    def __init__(self, meme_root: Path) -> None:
+    def __init__(
+        self,
+        meme_root: Path,
+        fallback_to_neutral: bool = True,
+        media_loader: LocalMemeMediaLoader | None = None,
+    ) -> None:
         self.meme_root = meme_root
+        self.fallback_to_neutral = fallback_to_neutral
+        self.media_loader = media_loader or LocalMemeMediaLoader()
         self.memes_by_key = self._load_meme_paths()
 
         self.current_key: str | None = None
-        self.current_meme: np.ndarray | None = None
+        self.current_media: MemeMedia | None = None
+        self.current_media_started_at = 0.0
 
     def _load_meme_paths(self) -> dict[str, list[Path]]:
         if not self.meme_root.exists():
@@ -39,31 +50,43 @@ class FolderMemeRepository:
 
         return memes_by_key
 
+    def get_available_keys(self) -> set[str]:
+        return {
+            meme_key
+            for meme_key, image_paths in self.memes_by_key.items()
+            if image_paths
+        }
+
     def get_meme(self, meme_key: str) -> np.ndarray | None:
         image_paths = self.memes_by_key.get(meme_key)
 
-        if not image_paths:
+        if not image_paths and self.fallback_to_neutral:
             image_paths = self.memes_by_key.get("neutral", [])
 
         if not image_paths:
             return None
 
-        should_change = meme_key != self.current_key or self.current_meme is None
+        should_change = meme_key != self.current_key or self.current_media is None
 
         if should_change:
             selected_path = random.choice(image_paths)
-            image = cv2.imread(str(selected_path))
+            media = self.media_loader.load_media(selected_path)
 
-            if image is None:
-                print(f"Could not load image: {selected_path}")
+            if media is None:
                 return None
 
             self.current_key = meme_key
-            self.current_meme = image
+            self.current_media = media
+            self.current_media_started_at = time.monotonic()
 
-            print(f"Meme changed: {meme_key} -> {selected_path.name}")
+            print(
+                f"Meme changed: {meme_key} -> {selected_path.name} "
+                f"animated={media.is_animated}"
+            )
 
-        if self.current_meme is None:
+        if self.current_media is None:
             return None
 
-        return self.current_meme.copy()
+        return self.current_media.frame_at(
+            time.monotonic() - self.current_media_started_at
+        )

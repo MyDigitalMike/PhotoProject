@@ -1,0 +1,217 @@
+{
+  "profiles": [
+    {
+      "key": "thumbs_up",
+      "priority": 1000.0,
+      "min_total_score": 1000.0,
+      "required_signals": ["thumbs_up"],
+      "description": "Thumbs-up pose."
+    },
+    {
+      "key": "facepalm",
+      "priority": 950.0,
+      "min_total_score": 950.0,
+      "required_signals": ["hand_near_forehead"],
+      "description": "Hand near forehead."
+    },
+    {
+      "key": "thinking",
+      "priority": 900.0,
+      "min_total_score": 900.0,
+      "required_signals": ["hand_near_chin"],
+      "blocked_signals": ["hand_near_mouth"],
+      "description": "Hand on chin."
+    },
+    {
+      "key": "shocked",
+      "priority": 520.0,
+      "min_total_score": 580.0,
+      "required_signals": ["hands_near_cheeks"],
+      "emotion_weights": {
+        "surprise": 3.0,
+        "fear": 3.0,
+        "sad": 1.0
+      },
+      "signal_weights": {
+        "mouth_open": 100.0
+      },
+      "description": "Both hands near cheeks with shock/fear/open mouth."
+    },
+    {
+      "key": "hand_on_mouth",
+      "priority": 850.0,
+      "min_total_score": 850.0,
+      "required_signals": ["hand_near_mouth"],
+      "blocked_signals": ["mouth_open"],
+      "description": "Covered mouth."
+    },
+    {
+      "key": "hand_on_mouth",
+      "priority": 620.0,
+      "min_total_score": 665.0,
+      "required_signals": ["hand_near_mouth"],
+      "emotion_weights": {
+        "surprise": 3.0,
+        "fear": 3.0,
+        "sad": 1.0
+      },
+      "description": "Hand near mouth with surprise/fear/sadness."
+    },
+    {
+      "key": "wtf_bro",
+      "priority": 610.0,
+      "min_total_score": 660.0,
+      "required_signals": ["two_open_palms"],
+      "emotion_weights": {
+        "surprise": 2.5,
+        "angry": 1.5,
+        "disgust": 4.0,
+        "fear": 1.0
+      },
+      "signal_weights": {
+        "mouth_open": 70.0
+      },
+      "search_terms": [
+        "wtf reaction meme",
+        "what bro reaction meme",
+        "confused what meme"
+      ],
+      "description": "Questioning two-palms pose. Add images to assets/memes/wtf_bro."
+    },
+    {
+      "key": "confused",
+      "priority": 540.0,
+      "min_total_score": 590.0,
+      "required_signals": ["hand_near_temple"],
+      "emotion_weights": {
+        "surprise": 2.0,
+        "neutral": 0.5,
+        "sad": 0.8
+      },
+      "search_terms": [
+        "confused reaction meme",
+        "confused meme",
+        "what is happening reaction meme"
+      ],
+      "description": "Hand near temple or head-scratch style pose. Add images to assets/memes/confused."
+    },
+    {
+      "key": "absolute_cinema",
+      "priority": 210.0,
+      "min_total_score": 290.0,
+      "any_signals": ["open_palm", "two_open_palms"],
+      "emotion_weights": {
+        "happy": 1.2,
+        "neutral": 0.8,
+        "surprise": 0.4
+      },
+      "signal_weights": {
+        "open_palm": 85.0,
+        "two_open_palms": 120.0
+      },
+      "search_terms": [
+        "absolute cinema meme",
+        "cinema reaction meme",
+        "masterpiece reaction meme"
+      ],
+      "description": "Admiring/open-hand reaction. Add images to assets/memes/absolute_cinema."
+    },
+    {
+      "key": "happy",
+      "min_total_score": 40.0,
+      "emotion_weights": {
+        "happy": 2.0
+      },
+      "search_terms": [
+        "happy reaction meme",
+        "laughing reaction meme"
+      ],
+      "description": "Happy emotion."
+    },
+    {
+      "key": "fear",
+      "min_total_score": 50.0,
+      "emotion_weights": {
+        "fear": 2.0
+      },
+      "signal_weights": {
+        "mouth_open": 15.0
+      },
+      "description": "Fear emotion."
+    },
+    {
+      "key": "fear",
+      "min_total_score": 65.0,
+      "min_scores": {
+        "surprise": 25.0
+      },
+      "signal_weights": {
+        "mouth_open": 65.0
+      },
+      "description": "Surprise with open mouth, mapped to fear."
+    },
+    {
+      "key": "shocked",
+      "min_total_score": 70.0,
+      "emotion_weights": {
+        "surprise": 2.0
+      },
+      "description": "Strong surprise."
+    },
+    {
+      "key": "surprise",
+      "min_total_score": 45.0,
+      "emotion_weights": {
+        "surprise": 1.5
+      },
+      "signal_weights": {
+        "mouth_open": 20.0
+      },
+      "search_terms": [
+        "surprised reaction meme",
+        "surprise meme",
+        "mind blown reaction meme"
+      ],
+      "description": "Moderate surprise."
+    },
+    {
+      "key": "sad",
+      "min_total_score": 35.0,
+      "emotion_weights": {
+        "sad": 2.0
+      },
+      "description": "Sad emotion."
+    },
+    {
+      "key": "disgust",
+      "min_total_score": 24.0,
+      "emotion_weights": {
+        "disgust": 3.0
+      },
+      "description": "Disgust emotion."
+    },
+    {
+      "key": "angry",
+      "min_total_score": 80.0,
+      "emotion_weights": {
+        "angry": 2.0
+      },
+      "description": "Angry emotion."
+    },
+    {
+      "key": "open_palm",
+      "priority": 100.0,
+      "min_total_score": 100.0,
+      "required_signals": ["open_palm"],
+      "description": "Open palm/stop gesture."
+    },
+    {
+      "key": "neutral",
+      "min_total_score": 30.0,
+      "emotion_weights": {
+        "neutral": 1.0
+      },
+      "description": "Neutral fallback."
+    }
+  ]
+}
