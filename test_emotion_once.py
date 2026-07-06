@@ -1,26 +1,40 @@
-import time
-
 import cv2
 from deepface import DeepFace
 
 
-def analyze_emotion(frame):
-    result = DeepFace.analyze(
-        img_path=frame,
-        actions=["emotion"],
-        enforce_detection=False,
-        detector_backend="opencv",
-        silent=True,
-    )
+BACKENDS = [
+    "opencv",
+    "retinaface",
+    "mediapipe",
+]
 
-    if isinstance(result, list):
-        result = result[0]
 
-    dominant_emotion = str(result["dominant_emotion"]).lower()
-    emotion_scores = result["emotion"]
-    confidence = float(emotion_scores.get(dominant_emotion, 0.0))
+def analyze_with_backend(frame, backend: str) -> None:
+    try:
+        result = DeepFace.analyze(
+            img_path=frame,
+            actions=["emotion"],
+            enforce_detection=False,
+            detector_backend=backend,
+            align=True,
+            silent=True,
+        )
 
-    return dominant_emotion, confidence
+        if isinstance(result, list):
+            result = result[0]
+
+        label = str(result["dominant_emotion"]).lower()
+        scores = result["emotion"]
+
+        print(f"\nBackend: {backend}")
+        print(f"Detected: {label}")
+
+        for emotion, score in sorted(scores.items(), key=lambda item: item[1], reverse=True):
+            print(f"  {emotion}: {float(score):.5f}%")
+
+    except Exception as error:
+        print(f"\nBackend failed: {backend}")
+        print(error)
 
 
 def main() -> None:
@@ -29,51 +43,28 @@ def main() -> None:
     if not camera.isOpened():
         raise RuntimeError("Could not open the camera.")
 
-    current_emotion = "neutral"
-    current_confidence = 0.0
-
-    analysis_interval_seconds = 0.75
-    last_analysis_time = 0.0
-
-    print("Live emotion detection is running. Press Q to quit.")
+    print("Press SPACE to analyze the current frame.")
+    print("Press Q to quit.")
 
     while True:
         success, frame = camera.read()
 
         if not success:
-            raise RuntimeError("Could not read a frame from the camera.")
+            raise RuntimeError("Could not read frame from camera.")
 
-        now = time.time()
+        cv2.imshow("Backend Emotion Test - SPACE to analyze", frame)
 
-        should_analyze = now - last_analysis_time >= analysis_interval_seconds
+        key = cv2.waitKey(1) & 0xFF
 
-        if should_analyze:
-            try:
-                current_emotion, current_confidence = analyze_emotion(frame)
-                print(f"Expression: {current_emotion} ({current_confidence:.1f}%)")
-            except Exception as error:
-                print(f"Emotion analysis failed: {error}")
-                current_emotion = "neutral"
-                current_confidence = 0.0
+        if key == ord(" "):
+            print("\n==============================")
+            print("Analyzing current frame...")
+            print("==============================")
 
-            last_analysis_time = now
+            for backend in BACKENDS:
+                analyze_with_backend(frame, backend)
 
-        text = f"Expression: {current_emotion} ({current_confidence:.1f}%)"
-
-        cv2.putText(
-            frame,
-            text,
-            (20, 40),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (255, 255, 255),
-            2,
-            cv2.LINE_AA,
-        )
-
-        cv2.imshow("Live Emotion Detection - Press Q to quit", frame)
-
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        if key == ord("q"):
             break
 
     camera.release()
