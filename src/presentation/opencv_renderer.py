@@ -42,8 +42,11 @@ class OpenCvRenderer:
         visual_debug = (
             f"Hands: {visual_context.hands_detected} | "
             f"Mouth open: {visual_context.mouth_open} | "
+            f"Eyes wide: {visual_context.eyes_wide} | "
+            f"Peace: {visual_context.peace_sign} | "
+            f"Point: {visual_context.finger_pointing} | "
             f"2 palms: {visual_context.two_open_palms} | "
-            f"Temple: {visual_context.hand_near_temple}"
+            f"Wave: {visual_context.hand_wave}"
         )
 
         self._draw_text(

@@ -24,6 +24,7 @@ class ApiMemeRepository:
         log_api_calls: bool = True,
         candidate_cache_seconds: float = 60.0,
         media_cache_seconds: float = 900.0,
+        media_variant_rotation_seconds: float = 35.0,
         minimum_display_seconds: float = 5.0,
         request_cooldown_seconds: float = 8.0,
     ) -> None:
@@ -34,6 +35,10 @@ class ApiMemeRepository:
         self.log_api_calls = log_api_calls
         self.candidate_cache_seconds = max(0.0, candidate_cache_seconds)
         self.media_cache_seconds = max(0.0, media_cache_seconds)
+        self.media_variant_rotation_seconds = max(
+            0.0,
+            media_variant_rotation_seconds,
+        )
         self.minimum_display_seconds = max(0.0, minimum_display_seconds)
         self.request_cooldown_seconds = max(0.0, request_cooldown_seconds)
 
@@ -42,7 +47,9 @@ class ApiMemeRepository:
         self.current_media_started_at = 0.0
         self.current_candidate: MemeCandidate | None = None
         self._candidate_cache: dict[str, tuple[float, MemeCandidate | None]] = {}
+        self._candidate_pool_cache: dict[str, tuple[float, tuple[MemeCandidate, ...]]] = {}
         self._media_cache: dict[str, tuple[float, MemeMedia, MemeCandidate]] = {}
+        self._last_candidate_url_by_key: dict[str, str] = {}
         self._last_provider_request_at = 0.0
         self._last_hold_log: tuple[str | None, str] | None = None
         self._last_cooldown_log: tuple[str, float] | None = None
@@ -62,8 +69,16 @@ class ApiMemeRepository:
 
     def get_meme(self, meme_key: str) -> np.ndarray | None:
         now = time.monotonic()
+        should_rotate_current = self._should_rotate_current_media(
+            meme_key=meme_key,
+            now=now,
+        )
 
-        if meme_key == self.current_key and self.current_media is not None:
+        if (
+            meme_key == self.current_key
+            and self.current_media is not None
+            and not should_rotate_current
+        ):
             return self.current_media.frame_at(
                 now - self.current_media_started_at
             )
@@ -73,7 +88,13 @@ class ApiMemeRepository:
 
         self._last_hold_log = None
 
-        cached_media = self._get_cached_media(meme_key=meme_key, now=now)
+        cached_media = None
+
+        if not should_rotate_current:
+            cached_media = self._get_cached_media(
+                meme_key=meme_key,
+                now=now,
+            )
 
         if cached_media is not None:
             media, candidate = cached_media
@@ -86,10 +107,23 @@ class ApiMemeRepository:
 
             return media.frame_at(0.0)
 
-        if self._should_hold_for_request_cooldown(meme_key=meme_key, now=now):
-            return self.current_media.frame_at(now - self.current_media_started_at)
-
         skipped_urls: set[str] = set()
+
+        if should_rotate_current and self.current_candidate is not None:
+            skipped_urls.add(self.current_candidate.image_url)
+
+        has_cached_candidate_pool = bool(
+            self._get_cached_candidate_pool(
+                meme_key=meme_key,
+                skipped_urls=skipped_urls,
+            )
+        )
+
+        if (
+            not has_cached_candidate_pool
+            and self._should_hold_for_request_cooldown(meme_key=meme_key, now=now)
+        ):
+            return self.current_media.frame_at(now - self.current_media_started_at)
 
         for _attempt in range(self.MAX_DOWNLOAD_ATTEMPTS):
             candidate = self._find_candidate(
@@ -106,6 +140,7 @@ class ApiMemeRepository:
             if media is None:
                 skipped_urls.add(candidate.image_url)
                 self._clear_cached_candidate(meme_key, candidate)
+                self._clear_candidate_from_pool(meme_key, candidate)
 
                 if self.log_api_calls:
                     print(
@@ -152,6 +187,27 @@ class ApiMemeRepository:
 
         if cached_candidate is not None:
             self._clear_cached_candidate(meme_key, cached_candidate)
+
+        cached_candidate_pool = self._get_cached_candidate_pool(
+            meme_key=meme_key,
+            skipped_urls=skipped_urls,
+        )
+
+        if cached_candidate_pool:
+            selected_candidate = self._select_candidate_from_pool(
+                meme_key=meme_key,
+                candidates=cached_candidate_pool,
+                skipped_urls=skipped_urls,
+            )
+            self._set_cached_candidate(meme_key, selected_candidate)
+
+            if self.log_api_calls:
+                print(
+                    "API repository candidate pool: "
+                    f"hit for key={meme_key} candidates={len(cached_candidate_pool)}"
+                )
+
+            return selected_candidate
 
         if self._has_recent_negative_cache(meme_key):
             if self.log_api_calls:
@@ -220,9 +276,14 @@ class ApiMemeRepository:
             return None
 
         candidates.sort(key=lambda candidate: candidate.score, reverse=True)
-        top_candidates = candidates[: min(len(candidates), 8)]
+        top_candidates = candidates[: min(len(candidates), 12)]
+        self._set_cached_candidate_pool(meme_key, top_candidates)
 
-        selected_candidate = random.choice(top_candidates)
+        selected_candidate = self._select_candidate_from_pool(
+            meme_key=meme_key,
+            candidates=top_candidates,
+            skipped_urls=skipped_urls,
+        )
 
         if self.log_api_calls:
             print(
@@ -311,10 +372,45 @@ class ApiMemeRepository:
 
         return True
 
+    def _should_rotate_current_media(
+        self,
+        meme_key: str,
+        now: float,
+    ) -> bool:
+        if self.media_variant_rotation_seconds <= 0:
+            return False
+
+        if self.current_media is None or self.current_candidate is None:
+            return False
+
+        if meme_key != self.current_key:
+            return False
+
+        if not self._has_cached_candidate_alternative(
+            meme_key=meme_key,
+            skipped_url=self.current_candidate.image_url,
+            now=now,
+        ):
+            return False
+
+        elapsed_seconds = now - self.current_media_started_at
+
+        if elapsed_seconds < self.media_variant_rotation_seconds:
+            return False
+
+        if self.log_api_calls:
+            print(
+                "API repository variant rotation: "
+                f"key={meme_key} elapsed={elapsed_seconds:.1f}s"
+            )
+
+        return True
+
     def _get_cached_media(
         self,
         meme_key: str,
         now: float,
+        allow_variant_rotation: bool = True,
     ) -> tuple[MemeMedia, MemeCandidate] | None:
         cached_item = self._media_cache.get(meme_key)
 
@@ -327,10 +423,42 @@ class ApiMemeRepository:
             self._media_cache.pop(meme_key, None)
             return None
 
+        if (
+            allow_variant_rotation
+            and self._should_rotate_cached_media(
+                meme_key=meme_key,
+                cached_at=cached_at,
+                cached_candidate=candidate,
+                now=now,
+            )
+        ):
+            return None
+
         if self.log_api_calls:
             print(f"API repository media cache: hit for key={meme_key}")
 
         return media, candidate
+
+    def _should_rotate_cached_media(
+        self,
+        meme_key: str,
+        cached_at: float,
+        cached_candidate: MemeCandidate,
+        now: float,
+    ) -> bool:
+        if self.media_variant_rotation_seconds <= 0:
+            return False
+
+        elapsed_seconds = now - cached_at
+
+        if elapsed_seconds < self.media_variant_rotation_seconds:
+            return False
+
+        return self._has_cached_candidate_alternative(
+            meme_key=meme_key,
+            skipped_url=cached_candidate.image_url,
+            now=now,
+        )
 
     def _set_cached_media(
         self,
@@ -342,6 +470,92 @@ class ApiMemeRepository:
             return
 
         self._media_cache[meme_key] = (time.monotonic(), media, candidate)
+
+    def _get_cached_candidate_pool(
+        self,
+        meme_key: str,
+        skipped_urls: set[str],
+    ) -> tuple[MemeCandidate, ...]:
+        cached_item = self._candidate_pool_cache.get(meme_key)
+
+        if cached_item is None:
+            return ()
+
+        cached_at, candidates = cached_item
+
+        if time.monotonic() - cached_at > self.media_cache_seconds:
+            self._candidate_pool_cache.pop(meme_key, None)
+            return ()
+
+        return tuple(
+            candidate
+            for candidate in candidates
+            if candidate.image_url not in skipped_urls
+        )
+
+    def _set_cached_candidate_pool(
+        self,
+        meme_key: str,
+        candidates: Iterable[MemeCandidate],
+    ) -> None:
+        unique_candidates: dict[str, MemeCandidate] = {}
+
+        for candidate in candidates:
+            unique_candidates.setdefault(candidate.image_url, candidate)
+
+        self._candidate_pool_cache[meme_key] = (
+            time.monotonic(),
+            tuple(unique_candidates.values()),
+        )
+
+    def _select_candidate_from_pool(
+        self,
+        meme_key: str,
+        candidates: Iterable[MemeCandidate],
+        skipped_urls: set[str],
+    ) -> MemeCandidate:
+        available_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.image_url not in skipped_urls
+        ]
+
+        if not available_candidates:
+            available_candidates = list(candidates)
+
+        last_candidate_url = self._last_candidate_url_by_key.get(meme_key)
+        fresh_candidates = [
+            candidate
+            for candidate in available_candidates
+            if candidate.image_url != last_candidate_url
+        ]
+        candidate_pool = fresh_candidates or available_candidates
+        selected_candidate = random.choice(candidate_pool[: min(len(candidate_pool), 8)])
+        self._last_candidate_url_by_key[meme_key] = selected_candidate.image_url
+
+        return selected_candidate
+
+    def _has_cached_candidate_alternative(
+        self,
+        meme_key: str,
+        skipped_url: str,
+        now: float,
+    ) -> bool:
+        cached_item = self._candidate_pool_cache.get(meme_key)
+
+        if cached_item is None:
+            return False
+
+        cached_at, candidates = cached_item
+
+        if now - cached_at > self.media_cache_seconds:
+            self._candidate_pool_cache.pop(meme_key, None)
+            return False
+
+        return any(
+            candidate.image_url != skipped_url
+            for candidate in candidates
+        )
 
     def _provider_cooldown_remaining(self, now: float) -> float:
         if self.request_cooldown_seconds <= 0:
@@ -429,6 +643,31 @@ class ApiMemeRepository:
 
         if cached_candidate == candidate:
             self._candidate_cache.pop(meme_key, None)
+
+    def _clear_candidate_from_pool(
+        self,
+        meme_key: str,
+        candidate: MemeCandidate,
+    ) -> None:
+        cached_item = self._candidate_pool_cache.get(meme_key)
+
+        if cached_item is None:
+            return
+
+        cached_at, candidates = cached_item
+        remaining_candidates = tuple(
+            cached_candidate
+            for cached_candidate in candidates
+            if cached_candidate.image_url != candidate.image_url
+        )
+
+        if remaining_candidates:
+            self._candidate_pool_cache[meme_key] = (
+                cached_at,
+                remaining_candidates,
+            )
+        else:
+            self._candidate_pool_cache.pop(meme_key, None)
 
     @staticmethod
     def _build_profiles_by_key(

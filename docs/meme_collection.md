@@ -94,13 +94,14 @@ on each app loop, so remote and local GIFs can animate. If a remote candidate
 still cannot be decoded, the API repository skips it and tries another candidate
 before falling back to local assets.
 
-To avoid spending API calls too quickly, the remote repository uses three pacing
+To avoid spending API calls too quickly, the remote repository uses pacing
 settings:
 
 ```json
 "minimum_remote_display_seconds": 5,
 "remote_request_cooldown_seconds": 8,
-"media_cache_seconds": 900
+"media_cache_seconds": 900,
+"media_variant_rotation_seconds": 35
 ```
 
 `minimum_remote_display_seconds` keeps the current remote meme visible long
@@ -111,6 +112,10 @@ remote search is still fresh.
 
 `media_cache_seconds` reuses already downloaded and decoded remote images/GIFs
 for the same meme key before calling providers again.
+
+`media_variant_rotation_seconds` lets the same meme key rotate to another
+already discovered remote candidate after a while. This adds variety without
+forcing a new provider search when the candidate pool is still cached.
 
 Set `"prefer_remote": true` in `api_providers.json` when you want APIs to win
 over local folders. The safer default is `false`: local first, API fallback.
@@ -162,6 +167,25 @@ The Hugging Face model should return labels that can be mapped to:
 
 `any_min_scores` requires at least one listed emotion to reach its threshold.
 
+## Matching and variety
+
+The matcher now ranks every valid profile instead of returning only one winner.
+The app then applies a variety selector over the top ranked profiles. If the
+best profile wins by a large margin, it still wins. If several profiles are
+close, recently displayed keys get a small penalty so nearby reactions can
+surface instead of repeating the same few keys.
+
+Debug logs include a compact ranking:
+
+```text
+top=smiling:879, happy:530, smirk:502
+```
+
+Use this to tune `priority`, `min_total_score`, `emotion_weights`, and
+`signal_weights`. If a profile never appears in `top=...`, its rules are too
+strict or its score is too low. If one profile always appears far above the
+others, reduce its `priority` or signal weights.
+
 ## Visual signals
 
 Supported signal names include:
@@ -172,6 +196,17 @@ mouth_closed
 mouth_wide_open
 mouth_smile
 mouth_puckered
+eyes_wide
+eyes_squint
+eyes_closed
+wink
+eyebrows_raised
+head_tilt_left
+head_tilt_right
+looking_left
+looking_right
+looking_up
+looking_down
 hand_near_mouth
 hand_near_forehead
 hand_near_chin
@@ -183,6 +218,10 @@ any_hands
 one_hand
 two_hands
 thumbs_up
+peace_sign
+finger_pointing
+fist
+hand_wave
 open_palm
 one_open_palm
 two_open_palms
@@ -200,6 +239,17 @@ kiss_lips
 puckered_lips
 duck_face
 kiss_mouth
+wide_eyes
+big_eyes
+squint
+squinting
+closed_eyes
+raised_eyebrows
+brows_up
+head_tilt
+looking_side
+look_left
+look_right
 wide_open_mouth
 big_mouth_open
 hands_visible
@@ -211,6 +261,14 @@ no_hand
 single_hand
 both_hands
 single_open_palm
+peace
+victory_sign
+pointing
+point
+closed_fist
+wave
+waving
+palm_forward
 ```
 
 If a profile uses a signal that is not supported, it will never match because

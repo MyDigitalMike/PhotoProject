@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from src.application.meme_match_candidate import MemeMatchCandidate
 from src.application.meme_profiles import build_default_meme_profiles
 from src.domain.emotion_result import EmotionResult
 from src.domain.meme_profile import MemeProfile
@@ -27,6 +28,16 @@ class MemeMatcher:
         "puckered_lips": "mouth_puckered",
         "duck_face": "mouth_puckered",
         "kiss_mouth": "mouth_puckered",
+        "wide_eyes": "eyes_wide",
+        "big_eyes": "eyes_wide",
+        "squint": "eyes_squint",
+        "squinting": "eyes_squint",
+        "closed_eyes": "eyes_closed",
+        "eye_closed": "eyes_closed",
+        "raised_eyebrows": "eyebrows_raised",
+        "brows_up": "eyebrows_raised",
+        "look_left": "looking_left",
+        "look_right": "looking_right",
         "wide_open_mouth": "mouth_wide_open",
         "big_mouth_open": "mouth_wide_open",
         "hands_visible": "any_hands",
@@ -38,6 +49,14 @@ class MemeMatcher:
         "single_hand": "one_hand",
         "both_hands": "two_hands",
         "single_open_palm": "one_open_palm",
+        "peace": "peace_sign",
+        "victory_sign": "peace_sign",
+        "pointing": "finger_pointing",
+        "point": "finger_pointing",
+        "closed_fist": "fist",
+        "wave": "hand_wave",
+        "waving": "hand_wave",
+        "palm_forward": "open_palm",
     }
 
     def __init__(
@@ -57,8 +76,22 @@ class MemeMatcher:
         emotion_result: EmotionResult,
         visual_context: VisualContext,
     ) -> str:
-        best_key = "neutral"
-        best_score = float("-inf")
+        candidates = self.rank(
+            emotion_result=emotion_result,
+            visual_context=visual_context,
+        )
+
+        if not candidates:
+            return emotion_result.label or "neutral"
+
+        return candidates[0].key
+
+    def rank(
+        self,
+        emotion_result: EmotionResult,
+        visual_context: VisualContext,
+    ) -> tuple[MemeMatchCandidate, ...]:
+        candidates: list[MemeMatchCandidate] = []
 
         for profile in self.profiles:
             if not self._is_available(profile.key):
@@ -73,14 +106,16 @@ class MemeMatcher:
             if score is None:
                 continue
 
-            if score > best_score:
-                best_score = score
-                best_key = profile.key
+            candidates.append(
+                MemeMatchCandidate(
+                    key=profile.key,
+                    score=score,
+                )
+            )
 
-        if best_score == float("-inf"):
-            return emotion_result.label or "neutral"
+        candidates.sort(key=lambda candidate: candidate.score, reverse=True)
 
-        return best_key
+        return tuple(candidates)
 
     def _is_available(self, meme_key: str) -> bool:
         if self.available_keys is None:
@@ -159,6 +194,15 @@ class MemeMatcher:
         visual_context: VisualContext,
         signal_name: str,
     ) -> bool:
+        if signal_name == "head_tilt":
+            return (
+                visual_context.head_tilt_left
+                or visual_context.head_tilt_right
+            )
+
+        if signal_name == "looking_side":
+            return visual_context.looking_left or visual_context.looking_right
+
         resolved_signal_name = MemeMatcher.SIGNAL_ALIASES.get(
             signal_name,
             signal_name,

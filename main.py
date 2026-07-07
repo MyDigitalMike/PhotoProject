@@ -84,6 +84,7 @@ def main() -> None:
         minimum_remote_display_seconds=api_config.minimum_remote_display_seconds,
         remote_request_cooldown_seconds=api_config.remote_request_cooldown_seconds,
         media_cache_seconds=api_config.media_cache_seconds,
+        media_variant_rotation_seconds=api_config.media_variant_rotation_seconds,
     )
 
     local_meme_repository = FolderMemeRepository(
@@ -118,6 +119,7 @@ def main() -> None:
         log_api_calls=api_config.log_api_calls,
         candidate_cache_seconds=api_config.candidate_cache_seconds,
         media_cache_seconds=api_config.media_cache_seconds,
+        media_variant_rotation_seconds=api_config.media_variant_rotation_seconds,
         minimum_display_seconds=api_config.minimum_remote_display_seconds,
         request_cooldown_seconds=api_config.remote_request_cooldown_seconds,
     )
@@ -141,6 +143,10 @@ def main() -> None:
         renderer=renderer,
         meme_matcher=meme_matcher,
         analysis_interval_seconds=0.5,
+        emotion_smoothing_window_seconds=1.6,
+        meme_candidate_seconds=1.15,
+        fast_meme_candidate_seconds=0.60,
+        meme_minimum_display_seconds=2.0,
     )
 
     app.run()
@@ -157,6 +163,7 @@ def _print_api_config(
     minimum_remote_display_seconds: float,
     remote_request_cooldown_seconds: float,
     media_cache_seconds: float,
+    media_variant_rotation_seconds: float,
 ) -> None:
     print(
         "Meme API config: "
@@ -180,7 +187,8 @@ def _print_api_config(
         "Meme API pacing: "
         f"minimum_display={minimum_remote_display_seconds:.1f}s, "
         f"request_cooldown={remote_request_cooldown_seconds:.1f}s, "
-        f"media_cache={media_cache_seconds:.1f}s"
+        f"media_cache={media_cache_seconds:.1f}s, "
+        f"variant_rotation={media_variant_rotation_seconds:.1f}s"
     )
 
 

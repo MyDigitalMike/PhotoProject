@@ -9,6 +9,39 @@
       "description": "Strong thumbs-up gesture."
     },
     {
+      "key": "peace_sign",
+      "priority": 1185.0,
+      "min_total_score": 1185.0,
+      "required_signals": ["peace_sign"],
+      "search_terms": ["peace sign reaction gif", "victory sign meme", "deuces reaction gif"],
+      "description": "Index and middle fingers raised."
+    },
+    {
+      "key": "pointing",
+      "priority": 1145.0,
+      "min_total_score": 1145.0,
+      "required_signals": ["finger_pointing"],
+      "search_terms": ["pointing reaction meme", "you reaction gif", "look at this meme", "pointing at camera meme"],
+      "description": "One-finger pointing gesture."
+    },
+    {
+      "key": "fist",
+      "priority": 1095.0,
+      "min_total_score": 1095.0,
+      "required_signals": ["fist"],
+      "emotion_weights": {"angry": 0.6, "happy": 0.4},
+      "search_terms": ["fist pump reaction gif", "determined fist meme", "lets go reaction gif"],
+      "description": "Closed fist / hype pose."
+    },
+    {
+      "key": "hand_wave",
+      "priority": 975.0,
+      "min_total_score": 975.0,
+      "required_signals": ["hand_wave"],
+      "search_terms": ["waving reaction gif", "hello reaction meme", "bye reaction gif"],
+      "description": "Side-to-side hand wave."
+    },
+    {
       "key": "facepalm",
       "priority": 1160.0,
       "min_total_score": 1160.0,
@@ -118,6 +151,62 @@
       "emotion_weights": {"fear": 2.0, "angry": 1.4, "surprise": 1.2},
       "search_terms": ["screaming reaction gif", "screaming meme", "panic screaming reaction"],
       "description": "Wide open mouth with fear/anger."
+    },
+    {
+      "key": "wide_eyes",
+      "priority": 735.0,
+      "min_total_score": 775.0,
+      "required_signals": ["eyes_wide"],
+      "emotion_weights": {"surprise": 1.4, "fear": 0.7, "neutral": 0.3},
+      "signal_weights": {"eyebrows_raised": 70.0, "mouth_open": 45.0},
+      "search_terms": ["wide eyes reaction gif", "staring reaction meme", "shocked eyes meme"],
+      "description": "Big-eye reaction, often surprise or stare."
+    },
+    {
+      "key": "wink",
+      "priority": 720.0,
+      "min_total_score": 720.0,
+      "required_signals": ["wink"],
+      "emotion_weights": {"happy": 0.8, "neutral": 0.3},
+      "search_terms": ["wink reaction gif", "winking meme", "wink wink reaction"],
+      "description": "One eye closed / wink."
+    },
+    {
+      "key": "squint",
+      "priority": 640.0,
+      "min_total_score": 680.0,
+      "required_signals": ["eyes_squint", "mouth_closed"],
+      "blocked_signals": ["mouth_wide_open"],
+      "emotion_weights": {"neutral": 0.6, "disgust": 0.8, "angry": 0.5},
+      "search_terms": ["squinting reaction meme", "suspicious squint gif", "judging squint meme"],
+      "description": "Suspicious or judging squint."
+    },
+    {
+      "key": "head_tilt",
+      "priority": 575.0,
+      "min_total_score": 610.0,
+      "any_signals": ["head_tilt_left", "head_tilt_right"],
+      "emotion_weights": {"neutral": 0.6, "surprise": 0.5, "sad": 0.4},
+      "search_terms": ["confused head tilt reaction gif", "huh reaction meme", "curious reaction gif"],
+      "description": "Tilted head / curious confusion."
+    },
+    {
+      "key": "look_away",
+      "priority": 470.0,
+      "min_total_score": 510.0,
+      "any_signals": ["looking_left", "looking_right"],
+      "emotion_weights": {"neutral": 0.7, "sad": 0.5, "fear": 0.4},
+      "search_terms": ["looking away reaction gif", "awkward look away meme", "side glance reaction gif"],
+      "description": "Head turned / looking away."
+    },
+    {
+      "key": "eyes_closed",
+      "priority": 430.0,
+      "min_total_score": 470.0,
+      "required_signals": ["eyes_closed"],
+      "emotion_weights": {"sad": 0.7, "neutral": 0.5, "happy": 0.3},
+      "search_terms": ["eyes closed reaction gif", "done reaction meme", "calm reaction gif"],
+      "description": "Eyes closed, calm/done/blink-like reaction."
     },
     {
       "key": "smiling",

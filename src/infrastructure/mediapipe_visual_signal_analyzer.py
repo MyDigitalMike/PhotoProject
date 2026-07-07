@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 import math
+import time
 from typing import Any
 
 import cv2
@@ -24,6 +25,15 @@ class MediaPipeVisualSignalAnalyzer:
     MOUTH_WIDE_OPEN_RATIO_THRESHOLD = 0.13
     MOUTH_SMILE_WIDTH_RATIO_THRESHOLD = 0.405
     MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD = 0.335
+    EYES_WIDE_RATIO_THRESHOLD = 0.30
+    EYES_SQUINT_RATIO_THRESHOLD = 0.20
+    EYES_CLOSED_RATIO_THRESHOLD = 0.145
+    EYEBROWS_RAISED_RATIO_THRESHOLD = 0.060
+    HEAD_TILT_DEGREES_THRESHOLD = 8.0
+    HEAD_LOOK_HORIZONTAL_RATIO_THRESHOLD = 0.060
+    HEAD_LOOK_VERTICAL_RATIO_THRESHOLD = 0.055
+    HAND_WAVE_MIN_X_RANGE = 0.11
+    HAND_WAVE_MAX_Y_RANGE = 0.16
 
     HAND_MOUTH_FACE_RATIO = 0.42
     HAND_FOREHEAD_FACE_RATIO = 0.50
@@ -39,6 +49,17 @@ class MediaPipeVisualSignalAnalyzer:
         "mouth_wide_open",
         "mouth_smile",
         "mouth_puckered",
+        "eyes_wide",
+        "eyes_squint",
+        "eyes_closed",
+        "wink",
+        "eyebrows_raised",
+        "head_tilt_left",
+        "head_tilt_right",
+        "looking_left",
+        "looking_right",
+        "looking_up",
+        "looking_down",
         "hand_near_mouth",
         "hand_near_forehead",
         "hand_near_chin",
@@ -50,6 +71,10 @@ class MediaPipeVisualSignalAnalyzer:
         "one_hand",
         "two_hands",
         "thumbs_up",
+        "peace_sign",
+        "finger_pointing",
+        "fist",
+        "hand_wave",
         "open_palm",
         "one_open_palm",
         "two_open_palms",
@@ -66,6 +91,9 @@ class MediaPipeVisualSignalAnalyzer:
         self.signal_off_ratio = signal_off_ratio
         self._signal_histories: dict[str, deque[bool]] = {}
         self._stable_signals: dict[str, bool] = {}
+        self._hand_motion_history: deque[tuple[float, float, float]] = deque(
+            maxlen=12,
+        )
 
         self.face_mesh = mp_face_mesh.FaceMesh(
             static_image_mode=False,
@@ -98,6 +126,39 @@ class MediaPipeVisualSignalAnalyzer:
         one_hand = hands_detected == 1
         two_hands = hands_detected >= 2
 
+        thumbs_up_count = sum(
+            self._is_thumbs_up(hand_landmarks)
+            for hand_landmarks in hand_landmarks_list
+        )
+        thumbs_up = thumbs_up_count >= 1
+
+        peace_sign_count = sum(
+            self._is_peace_sign(hand_landmarks)
+            for hand_landmarks in hand_landmarks_list
+        )
+        peace_sign = peace_sign_count >= 1
+
+        finger_pointing_count = sum(
+            self._is_finger_pointing(hand_landmarks)
+            for hand_landmarks in hand_landmarks_list
+        )
+        finger_pointing = finger_pointing_count >= 1
+
+        fist_count = sum(
+            self._is_fist(hand_landmarks)
+            for hand_landmarks in hand_landmarks_list
+        )
+        fist = fist_count >= 1
+
+        open_palm_count = sum(
+            self._is_open_palm(hand_landmarks)
+            for hand_landmarks in hand_landmarks_list
+        )
+        open_palm = open_palm_count >= 1
+        one_open_palm = open_palm_count == 1
+        two_open_palms = open_palm_count >= 2
+        hand_wave = self._is_hand_wave(hand_landmarks_list)
+
         if face_landmarks is None:
             raw_context = VisualContext(
                 face_detected=False,
@@ -106,8 +167,21 @@ class MediaPipeVisualSignalAnalyzer:
                 any_hands=any_hands,
                 one_hand=one_hand,
                 two_hands=two_hands,
+                thumbs_up=thumbs_up,
+                peace_sign=peace_sign,
+                finger_pointing=finger_pointing,
+                fist=fist,
+                hand_wave=hand_wave,
+                open_palm=open_palm,
+                one_open_palm=one_open_palm,
+                two_open_palms=two_open_palms,
                 debug={
                     "hands_detected": float(hands_detected),
+                    "thumbs_up_count": float(thumbs_up_count),
+                    "peace_sign_count": float(peace_sign_count),
+                    "finger_pointing_count": float(finger_pointing_count),
+                    "fist_count": float(fist_count),
+                    "open_palm_count": float(open_palm_count),
                 },
             )
 
@@ -130,6 +204,43 @@ class MediaPipeVisualSignalAnalyzer:
             not mouth_open
             and mouth_width_ratio <= self.MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD
         )
+        left_eye_open_ratio = self._eye_open_ratio(
+            face_landmarks,
+            outer_index=33,
+            inner_index=133,
+            upper_index=159,
+            lower_index=145,
+        )
+        right_eye_open_ratio = self._eye_open_ratio(
+            face_landmarks,
+            outer_index=362,
+            inner_index=263,
+            upper_index=386,
+            lower_index=374,
+        )
+        eye_open_ratio = (left_eye_open_ratio + right_eye_open_ratio) / 2.0
+        left_eye_closed = left_eye_open_ratio <= self.EYES_CLOSED_RATIO_THRESHOLD
+        right_eye_closed = right_eye_open_ratio <= self.EYES_CLOSED_RATIO_THRESHOLD
+        eyes_closed = left_eye_closed and right_eye_closed
+        wink = left_eye_closed != right_eye_closed
+        eyes_squint = (
+            not eyes_closed
+            and not wink
+            and eye_open_ratio <= self.EYES_SQUINT_RATIO_THRESHOLD
+        )
+        eyes_wide = eye_open_ratio >= self.EYES_WIDE_RATIO_THRESHOLD
+        eyebrow_raise_ratio = self._eyebrow_raise_ratio(face_landmarks)
+        eyebrows_raised = (
+            eyebrow_raise_ratio >= self.EYEBROWS_RAISED_RATIO_THRESHOLD
+        )
+        head_tilt_degrees = self._head_tilt_degrees(face_landmarks)
+        head_tilt_left = head_tilt_degrees <= -self.HEAD_TILT_DEGREES_THRESHOLD
+        head_tilt_right = head_tilt_degrees >= self.HEAD_TILT_DEGREES_THRESHOLD
+        head_offset_x, head_offset_y = self._head_offset_ratios(face_landmarks)
+        looking_left = head_offset_x <= -self.HEAD_LOOK_HORIZONTAL_RATIO_THRESHOLD
+        looking_right = head_offset_x >= self.HEAD_LOOK_HORIZONTAL_RATIO_THRESHOLD
+        looking_up = head_offset_y <= -self.HEAD_LOOK_VERTICAL_RATIO_THRESHOLD
+        looking_down = head_offset_y >= self.HEAD_LOOK_VERTICAL_RATIO_THRESHOLD
 
         hand_mouth_threshold = self._scaled_face_threshold(
             face_landmarks,
@@ -203,24 +314,17 @@ class MediaPipeVisualSignalAnalyzer:
             or hands_near_cheeks
         )
 
-        thumbs_up_count = sum(
-            self._is_thumbs_up(hand_landmarks)
-            for hand_landmarks in hand_landmarks_list
-        )
-        thumbs_up = thumbs_up_count >= 1
-
-        open_palm_count = sum(
-            self._is_open_palm(hand_landmarks)
-            for hand_landmarks in hand_landmarks_list
-        )
-        open_palm = open_palm_count >= 1
-        one_open_palm = open_palm_count == 1
-        two_open_palms = open_palm_count >= 2
-
         debug = {
             "mouth_distance": mouth_distance,
             "mouth_open_ratio": mouth_open_ratio,
             "mouth_width_ratio": mouth_width_ratio,
+            "eye_open_ratio": eye_open_ratio,
+            "left_eye_open_ratio": left_eye_open_ratio,
+            "right_eye_open_ratio": right_eye_open_ratio,
+            "eyebrow_raise_ratio": eyebrow_raise_ratio,
+            "head_tilt_degrees": head_tilt_degrees,
+            "head_offset_x": head_offset_x,
+            "head_offset_y": head_offset_y,
             "hands_detected": float(hands_detected),
             "hand_mouth_distance": self._debug_distance(hand_mouth_distance),
             "hand_forehead_distance": self._debug_distance(hand_forehead_distance),
@@ -232,12 +336,18 @@ class MediaPipeVisualSignalAnalyzer:
             "hand_temple_threshold": hand_temple_threshold,
             "hand_cheek_threshold": hand_cheek_threshold,
             "thumbs_up_count": float(thumbs_up_count),
+            "peace_sign_count": float(peace_sign_count),
+            "finger_pointing_count": float(finger_pointing_count),
+            "fist_count": float(fist_count),
             "open_palm_count": float(open_palm_count),
             "mouth_wide_open_threshold": self.MOUTH_WIDE_OPEN_RATIO_THRESHOLD,
             "mouth_smile_width_threshold": self.MOUTH_SMILE_WIDTH_RATIO_THRESHOLD,
             "mouth_puckered_width_threshold": (
                 self.MOUTH_PUCKERED_WIDTH_RATIO_THRESHOLD
             ),
+            "eyes_wide_threshold": self.EYES_WIDE_RATIO_THRESHOLD,
+            "eyes_squint_threshold": self.EYES_SQUINT_RATIO_THRESHOLD,
+            "eyes_closed_threshold": self.EYES_CLOSED_RATIO_THRESHOLD,
         }
 
         raw_context = VisualContext(
@@ -248,6 +358,17 @@ class MediaPipeVisualSignalAnalyzer:
             mouth_wide_open=mouth_wide_open,
             mouth_smile=mouth_smile,
             mouth_puckered=mouth_puckered,
+            eyes_wide=eyes_wide,
+            eyes_squint=eyes_squint,
+            eyes_closed=eyes_closed,
+            wink=wink,
+            eyebrows_raised=eyebrows_raised,
+            head_tilt_left=head_tilt_left,
+            head_tilt_right=head_tilt_right,
+            looking_left=looking_left,
+            looking_right=looking_right,
+            looking_up=looking_up,
+            looking_down=looking_down,
             hand_near_mouth=hand_near_mouth,
             hand_near_forehead=hand_near_forehead,
             hand_near_chin=hand_near_chin,
@@ -259,6 +380,10 @@ class MediaPipeVisualSignalAnalyzer:
             one_hand=one_hand,
             two_hands=two_hands,
             thumbs_up=thumbs_up,
+            peace_sign=peace_sign,
+            finger_pointing=finger_pointing,
+            fist=fist,
+            hand_wave=hand_wave,
             open_palm=open_palm,
             one_open_palm=one_open_palm,
             two_open_palms=two_open_palms,
@@ -349,6 +474,94 @@ class MediaPipeVisualSignalAnalyzer:
             return 0.0
 
         return mouth_width / face_width
+
+    def _eye_open_ratio(
+        self,
+        face_landmarks: Any,
+        outer_index: int,
+        inner_index: int,
+        upper_index: int,
+        lower_index: int,
+    ) -> float:
+        eye_width = self._distance_between_face_points(
+            face_landmarks,
+            outer_index,
+            inner_index,
+        )
+        eye_height = self._distance_between_face_points(
+            face_landmarks,
+            upper_index,
+            lower_index,
+        )
+
+        if eye_width <= 0:
+            return 0.0
+
+        return eye_height / eye_width
+
+    def _eyebrow_raise_ratio(self, face_landmarks: Any) -> float:
+        face_height = self._distance_between_face_points(
+            face_landmarks,
+            10,
+            152,
+        )
+
+        if face_height <= 0:
+            return 0.0
+
+        left_raise = face_landmarks[159].y - face_landmarks[105].y
+        right_raise = face_landmarks[386].y - face_landmarks[334].y
+
+        return ((left_raise + right_raise) / 2.0) / face_height
+
+    def _head_tilt_degrees(self, face_landmarks: Any) -> float:
+        left_eye_center = self._midpoint(
+            face_landmarks[33],
+            face_landmarks[133],
+        )
+        right_eye_center = self._midpoint(
+            face_landmarks[362],
+            face_landmarks[263],
+        )
+
+        return math.degrees(
+            math.atan2(
+                right_eye_center[1] - left_eye_center[1],
+                right_eye_center[0] - left_eye_center[0],
+            )
+        )
+
+    def _head_offset_ratios(self, face_landmarks: Any) -> tuple[float, float]:
+        face_center = self._midpoint(
+            face_landmarks[234],
+            face_landmarks[454],
+        )
+        nose_tip = face_landmarks[1]
+        face_width = self._distance_between_face_points(
+            face_landmarks,
+            234,
+            454,
+        )
+        face_height = self._distance_between_face_points(
+            face_landmarks,
+            10,
+            152,
+        )
+
+        if face_width <= 0 or face_height <= 0:
+            return 0.0, 0.0
+
+        return (
+            (nose_tip.x - face_center[0]) / face_width,
+            (nose_tip.y - face_center[1]) / face_height,
+        )
+
+    @staticmethod
+    def _midpoint(point_a: Any, point_b: Any) -> tuple[float, float]:
+        return (
+            (point_a.x + point_b.x) / 2.0,
+            (point_a.y + point_b.y) / 2.0,
+        )
 
     def _scaled_face_threshold(
         self,
@@ -488,6 +701,17 @@ class MediaPipeVisualSignalAnalyzer:
             mouth_wide_open=smoothed_values["mouth_wide_open"],
             mouth_smile=smoothed_values["mouth_smile"],
             mouth_puckered=smoothed_values["mouth_puckered"],
+            eyes_wide=smoothed_values["eyes_wide"],
+            eyes_squint=smoothed_values["eyes_squint"],
+            eyes_closed=smoothed_values["eyes_closed"],
+            wink=smoothed_values["wink"],
+            eyebrows_raised=smoothed_values["eyebrows_raised"],
+            head_tilt_left=smoothed_values["head_tilt_left"],
+            head_tilt_right=smoothed_values["head_tilt_right"],
+            looking_left=smoothed_values["looking_left"],
+            looking_right=smoothed_values["looking_right"],
+            looking_up=smoothed_values["looking_up"],
+            looking_down=smoothed_values["looking_down"],
             hand_near_mouth=smoothed_values["hand_near_mouth"],
             hand_near_forehead=smoothed_values["hand_near_forehead"],
             hand_near_chin=smoothed_values["hand_near_chin"],
@@ -499,6 +723,10 @@ class MediaPipeVisualSignalAnalyzer:
             one_hand=smoothed_values["one_hand"],
             two_hands=smoothed_values["two_hands"],
             thumbs_up=smoothed_values["thumbs_up"],
+            peace_sign=smoothed_values["peace_sign"],
+            finger_pointing=smoothed_values["finger_pointing"],
+            fist=smoothed_values["fist"],
+            hand_wave=smoothed_values["hand_wave"],
             open_palm=smoothed_values["open_palm"],
             one_open_palm=smoothed_values["one_open_palm"],
             two_open_palms=smoothed_values["two_open_palms"],
@@ -612,6 +840,141 @@ class MediaPipeVisualSignalAnalyzer:
         tip_near_palm = abs(finger_tip.y - finger_mcp.y) <= 0.10
 
         return tip_not_raised or tip_near_palm
+
+    def _is_peace_sign(self, hand_landmarks: Any) -> bool:
+        index_extended, middle_extended, ring_extended, pinky_extended = (
+            self._finger_extension_states(hand_landmarks)
+        )
+
+        return (
+            index_extended
+            and middle_extended
+            and not ring_extended
+            and not pinky_extended
+        )
+
+    def _is_finger_pointing(self, hand_landmarks: Any) -> bool:
+        index_extended, middle_extended, ring_extended, pinky_extended = (
+            self._finger_extension_states(hand_landmarks)
+        )
+
+        return (
+            index_extended
+            and not middle_extended
+            and not ring_extended
+            and not pinky_extended
+        )
+
+    def _is_fist(self, hand_landmarks: Any) -> bool:
+        index_tip = hand_landmarks[8]
+        middle_tip = hand_landmarks[12]
+        ring_tip = hand_landmarks[16]
+        pinky_tip = hand_landmarks[20]
+
+        index_pip = hand_landmarks[6]
+        middle_pip = hand_landmarks[10]
+        ring_pip = hand_landmarks[14]
+        pinky_pip = hand_landmarks[18]
+
+        index_mcp = hand_landmarks[5]
+        middle_mcp = hand_landmarks[9]
+        ring_mcp = hand_landmarks[13]
+        pinky_mcp = hand_landmarks[17]
+
+        folded_count = sum(
+            (
+                self._is_finger_folded(index_tip, index_pip, index_mcp),
+                self._is_finger_folded(middle_tip, middle_pip, middle_mcp),
+                self._is_finger_folded(ring_tip, ring_pip, ring_mcp),
+                self._is_finger_folded(pinky_tip, pinky_pip, pinky_mcp),
+            )
+        )
+
+        return folded_count >= 4 and not self._is_thumbs_up(hand_landmarks)
+
+    @staticmethod
+    def _finger_extension_states(
+        hand_landmarks: Any,
+    ) -> tuple[bool, bool, bool, bool]:
+        return (
+            MediaPipeVisualSignalAnalyzer._is_finger_extended(
+                hand_landmarks[8],
+                hand_landmarks[6],
+                hand_landmarks[5],
+                hand_landmarks[0],
+            ),
+            MediaPipeVisualSignalAnalyzer._is_finger_extended(
+                hand_landmarks[12],
+                hand_landmarks[10],
+                hand_landmarks[9],
+                hand_landmarks[0],
+            ),
+            MediaPipeVisualSignalAnalyzer._is_finger_extended(
+                hand_landmarks[16],
+                hand_landmarks[14],
+                hand_landmarks[13],
+                hand_landmarks[0],
+            ),
+            MediaPipeVisualSignalAnalyzer._is_finger_extended(
+                hand_landmarks[20],
+                hand_landmarks[18],
+                hand_landmarks[17],
+                hand_landmarks[0],
+            ),
+        )
+
+    @staticmethod
+    def _is_finger_extended(
+        finger_tip: Any,
+        finger_pip: Any,
+        finger_mcp: Any,
+        wrist: Any,
+    ) -> bool:
+        tip_above_joint = finger_tip.y < finger_pip.y - 0.015
+        tip_far_from_palm = (
+            abs(finger_tip.y - wrist.y) > abs(finger_mcp.y - wrist.y) + 0.03
+        )
+
+        return tip_above_joint and tip_far_from_palm
+
+    def _is_hand_wave(self, hand_landmarks_list: list[Any]) -> bool:
+        if not hand_landmarks_list:
+            self._hand_motion_history.clear()
+            return False
+
+        center_x, center_y = self._hand_center(hand_landmarks_list[0])
+        now = time.monotonic()
+        self._hand_motion_history.append((now, center_x, center_y))
+
+        while self._hand_motion_history:
+            recorded_at, _x, _y = self._hand_motion_history[0]
+
+            if now - recorded_at <= 1.3:
+                break
+
+            self._hand_motion_history.popleft()
+
+        if len(self._hand_motion_history) < 5:
+            return False
+
+        x_values = [item[1] for item in self._hand_motion_history]
+        y_values = [item[2] for item in self._hand_motion_history]
+        x_range = max(x_values) - min(x_values)
+        y_range = max(y_values) - min(y_values)
+
+        return (
+            x_range >= self.HAND_WAVE_MIN_X_RANGE
+            and y_range <= self.HAND_WAVE_MAX_Y_RANGE
+        )
+
+    @staticmethod
+    def _hand_center(hand_landmarks: Any) -> tuple[float, float]:
+        important_points = (0, 5, 9, 13, 17)
+        x = sum(hand_landmarks[index].x for index in important_points)
+        y = sum(hand_landmarks[index].y for index in important_points)
+        count = len(important_points)
+
+        return x / count, y / count
 
     @staticmethod
     def _is_open_palm(hand_landmarks: Any) -> bool:
